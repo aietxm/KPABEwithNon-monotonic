@@ -73,9 +73,9 @@ class RBAC_scheme():
         CT_sf = AESEnCrypt(k_f,getResource(id_f))
         upDateR(id_f,CT_sf)
         if isNew:
-            FRL[id_f] = '#'
+            FRL[id_f][0] = '#'
         return k_f
-
+    # checked
     def AddUser(self,pk,mk,id_u):
         t = group.random(ZR)
         D0 = mk['g_alpha']*(pk['g_beta_2'] ** t)
@@ -83,8 +83,8 @@ class RBAC_scheme():
         D2 = pk['g'] ** -t
         SK_u = {'D0':D0, 'D1':D1, 'D2':D2}
         return SK_u
-
-    def AssignUser(self,id_u,id_r,CT_r):
+    # checked
+    def AssignUser(self,id_u,id_r,CT_r,mk):
         self.add2List(id_r,id_u,RUL)
         self.add2List(id_u,id_r,URL)
         r,w = group.random(ZR), group.random(ZR)
@@ -93,7 +93,7 @@ class RBAC_scheme():
         D_r_2 = CT_r['C1'] ** r
         SK_r_u = {'D3':D3, 'D_r':D_r ,'D_r_2':D_r_2}
         return SK_r_u
-
+1   # checked
     def DeassignUser(self,pk,id_u,id_r,CT_r):
         self.del4List(id_r,id_u,RUL)
         self.del4List(id_u,id_r,URL)
@@ -104,16 +104,17 @@ class RBAC_scheme():
         v = CT_r['v']
         Ver = CT_r['VER']
         v_1,K_r_1 = group.random(ZR), group.random(ZR)
-        v_1 += v
+        v += v_1
         C1 = pk['g'] ** (1 / K_r_1)
         C2 = group.hash(unicode(id_r), G1) ** (1 / K_r_1)
-        C = K_r_1 * (pk['e_gg_alpha'] ** v_1)
-        C0 = pk['g'] ** v_1
+        C = K_r_1 * (pk['e_gg_alpha'] ** v)
+        C0 = pk['g'] ** v
         C0_1 = pk['g_beta'] ** v_1
         C0_2 = (pk['g_beta_2'] ** (v_1 * group.hash(id_u0))) * (pk['h_beta'] ** v_1)
-        CT_r_1 = {'C1': C1, 'C2': C2, 'C': C, 'C0': C0, 'C'+str(n-1)+'_1': C0_1, 'C'+str(n-1)+'_2': C0_2, 'VER': Ver+1, 'v':v_1}
+        CT_r_1 = {'C1': C1, 'C2': C2, 'C': C, 'C0': C0, 'C'+str(n-1)+'_1': C0_1, 'C'+str(n-1)+'_2': C0_2, 'VER': Ver+1, 'v':v}
         return CT_r_1
 
+    # checked
     def Encrypt(self,id_r,S_f,K_f,isNew,pk):
         CT_r_f = group.hash(unicode(id_r),G1) ** S_f
         CT_f_l = {}
@@ -154,22 +155,24 @@ class RBAC_scheme():
         self.add2List(id_r,id_f,RFL)
         self.add2List(id_f,id_r,FRL)
         return CT_f
-
-    def RevokePermission(self,id_r,id_f):
+    # checked
+    def RevokePermission(self,id_r,id_f,pk):
         self.del4List(id_f,id_r,FRL)
         self.del4List(id_r,id_f,RFL)
         K_f_1 = self.addPermission(id_f,False)
+        S_f_1 = group.random(ZR)
         #upDateR(id_f,AESEnCrypt(K_f_1,getResource(id_f)))
         if len(FRL[id_f])>1 :
             IDList = FRL[id_f]
             CT_f_1 = {}
             for i in range(len(IDList)):
-                if i == 0 :
-                    CT_f_1 =self.Encrypt(IDList[i],S_f_1,K_f_1,True)
-                CT_f_1['CT_r_f'][IDList[i]] = self.Encrypt(IDList[i],S_f_1,K_f_1,False)
+                if i == 1 and IDList[i]!="#" :
+                    CT_f_1 =self.Encrypt(IDList[i],S_f_1,K_f_1,True,pk)
+                elif i!=0:
+                    CT_f_1['CT_r_f'][IDList[i]] = self.Encrypt(IDList[i],S_f_1,K_f_1,False,pk)
         return CT_f_1
 
-    def Authorize(self,id_u,id_f,SK_u,SK_r_u):
+    def CheckAccess(self,id_u,id_f,SK_u,SK_r_u):
         a = URL[id_u]
         b = FRL[id_f]
         CT_f = getCT_r(id_f)
@@ -189,7 +192,7 @@ class RBAC_scheme():
             E2 *=CT_r[i][index+'_2'] ** (1/(group.hash(id_u) - group.hash(u_i)))
         D = pair(CT_r_0['C0'],SK_u['D0']) / (pair(SK_u['D1'],E1) * pair(SK_u['D2'],E2))
         K_r = CT_r_0['C'] / D
-        A = pair(SK_r_u['D_r'] ** K_r,CT_f['C3']) / pair(SK_r_u['D_r_2'] ** K_r, CT_f['CT_r_f'])
+        A = pair(SK_r_u['D_r'] ** K_r,CT_f['C3']) / pair(SK_r_u['D_r_2'] ** K_r, CT_f['CT_r_f'][id_r])
         K_f = CT_f['C4'] / (pair(CT_f['C5'],SK_r_u['D3']) / A)
 
         #TODO if there is a Revoke happening,how does it works
