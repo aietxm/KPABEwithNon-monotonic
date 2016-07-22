@@ -54,8 +54,9 @@ class RBAC_scheme():
 
     # checked
     def AddRole(self,pk,id_r):
-        if len(RURL[id_r]) == 0:
-            RURL[id_r]= group.random(ZR)
+        if id_r not in RURL:
+            RURL[id_r]=[]
+            RURL[id_r].append("r0")
         id_u0 = RURL[id_r][0]
         v,K_r = group.random(ZR), group.random(ZR)
         C1 = pk['g'] **(1/K_r)
@@ -73,7 +74,7 @@ class RBAC_scheme():
         CT_sf = AESEnCrypt(k_f,getResource(id_f))
         upDateR(id_f,CT_sf)
         if isNew:
-            FRL[id_f][0] = '#'
+            FRL[id_f] = []
         return k_f
     # checked
     def AddUser(self,pk,mk,id_u):
@@ -93,7 +94,8 @@ class RBAC_scheme():
         D_r_2 = CT_r['C1'] ** r
         SK_r_u = {'D3':D3, 'D_r':D_r ,'D_r_2':D_r_2}
         return SK_r_u
-1   # checked
+
+     # checked
     def DeassignUser(self,pk,id_u,id_r,CT_r):
         self.del4List(id_r,id_u,RUL)
         self.del4List(id_u,id_r,URL)
@@ -119,7 +121,7 @@ class RBAC_scheme():
         CT_r_f = group.hash(unicode(id_r),G1) ** S_f
         CT_f_l = {}
         if isNew:
-            C3 = pk['g1'] ** S_f
+            C3 = pk['g'] ** S_f
             C4 = K_f * (pk['e_gg_alpha'] ** S_f )
             C5 = pk['g_beta'] ** S_f
             CT_f_l[id_r] = CT_r_f
@@ -145,7 +147,7 @@ class RBAC_scheme():
         else:
             K_f = self.getKey(id_f)
         list = FRL.get(id_f)
-        if list[0] == '#':
+        if len(list) == 0:
             S_f = group.random(ZR)
             CT_f = self.Encrypt(id_r,S_f,K_f,True,pk)
         else:
@@ -208,14 +210,27 @@ if __name__ == '__main__':
     print (pk)
     print (mk)
 
+    #addRoleTest
     CT = test.AddRole(pk,'r1')
+    print (CT)
 
-    SK = test.AddUser(pk,mk,'u1')
+    #addUserTest
+    SK_u = test.AddUser(pk,mk,'u1')
+    print (SK_u)
 
-    SK_r_u = test.AssignUser('u1','r1',CT)
-
-    CT_1 = test.DeassignUser(pk,'u1','r1',CT)
-
-    print (SK)
+    #AssignUserTest
+    SK_r_u = test.AssignUser('u1','r1',CT,mk)
     print (SK_r_u)
-    print (CT_1)
+
+    #GrantPermisionTest
+    CT_f = test.GrantPermission('r1','f1')
+    print (CT_f)
+
+    #CheckAccessTest
+    test.CheckAccess('u1','f1',SK_u,SK_r_u)
+
+    #CT_1 = test.DeassignUser(pk,'u1','r1',CT)
+
+    #print (SK)
+    #print (SK_r_u)
+    #print (CT_1)
