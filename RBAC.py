@@ -4,7 +4,7 @@ from mysecretutil import SecretUtil
 from charm.toolbox.ABEnc import ABEnc
 from AES import AESEnCrypt,AESDecrypt
 from AA import AA
-from FS import getResource,getCT_r,upDateR
+from FS import RBAC_FileSystem
 
 
 __author__ = 'CirnoTxm'
@@ -15,9 +15,10 @@ class RBAC_scheme():
     U0 = 'AdminUsers'
 
     def __init__(self,groupObj):
-        global group,util,RURL,RFL,RUL,URL,FRL,aa
+        global group,util,RURL,RFL,RUL,URL,FRL,aa,fs
         group = groupObj
         aa = AA()
+        fs = RBAC_FileSystem()
         util = SecretUtil(group)
         RURL = {}
         RFL,FRL,RUL,URL = {},{},{},{}
@@ -66,13 +67,13 @@ class RBAC_scheme():
         C0_1 = pk['g_beta'] ** v
         C0_2 = (pk['g_beta_2'] **(v * group.hash(id_u0))) * (pk['h_beta']**v )
         CT_r = {'C1':C1, 'C2':C2, 'C':C, 'C0':C0,'C0_1':C0_1, 'C0_2':C0_2 ,'VER':0, 'v':v}
-
+        aa.setCT_r(id_r,CT_r)
         return CT_r
     # generate a key to use AES encrypt the Resourse whose ID is id_r, judge the flag 'isNew',if it is true, init FRL[id_f]
     def addPermission(self,id_f,isNew):
         k_f = group.random(ZR)
-        CT_sf = AESEnCrypt(k_f,getResource(id_f))
-        upDateR(id_f,CT_sf)
+        CT_sf = AESEnCrypt(k_f,fs.getResource(id_f))
+        fs.upDateR(id_f,CT_sf)
         if isNew:
             FRL[id_f] = []
         return k_f
@@ -114,6 +115,7 @@ class RBAC_scheme():
         C0_1 = pk['g_beta'] ** v_1
         C0_2 = (pk['g_beta_2'] ** (v_1 * group.hash(id_u0))) * (pk['h_beta'] ** v_1)
         CT_r_1 = {'C1': C1, 'C2': C2, 'C': C, 'C0': C0, 'C'+str(n-1)+'_1': C0_1, 'C'+str(n-1)+'_2': C0_2, 'VER': Ver+1, 'v':v}
+        aa.setCT_r(id_r,CT_r_1)
         return CT_r_1
 
     # checked
@@ -177,12 +179,13 @@ class RBAC_scheme():
     def CheckAccess(self,id_u,id_f,SK_u,SK_r_u):
         a = URL[id_u]
         b = FRL[id_f]
-        CT_f = getCT_r(id_f)
+        CT_f = fs.getCT_f(id_f)
         inter = list(set(a).intersection(set(b)))
         if len(inter) == 0:
             return
         id_r = inter[0]
         CT_r = aa.getCT_r(id_r)
+        print (CT_r)
         CT_r_0 = CT_r[0] # the current CT_r
         u_list = RURL[id_r]
         E1 = 1

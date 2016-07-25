@@ -1,8 +1,21 @@
-def getResource(id_f):
-    pass
 
-def getCT_r(id_f):
-    pass
+class RBAC_FileSystem():
+    def __init__(self):
+        global FS
+        FS = {}
 
-def upDateR(id_f, new):
-    pass
+    def getResource(self,id_f):
+        pass
+
+    def getCT_f(self,id_f):
+        return FS[id_f]
+
+    def upDateR(self,id_f, new):
+        FS[id_f]= new
+    
+    def isOneof(self,id_f):
+        if id_f in FS:
+            return True
+        else:
+            return False
+
