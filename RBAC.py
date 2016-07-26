@@ -1,5 +1,5 @@
 from __future__ import print_function
-from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
+from charm.toolbox.pairinggroup import PairingGroup,ZR,GT,G1,pair,G2
 from mysecretutil import SecretUtil
 from charm.toolbox.ABEnc import ABEnc
 from AES import AESEnCrypt,AESDecrypt
@@ -45,8 +45,8 @@ class RBAC_scheme():
     def setup(self):
         g1 = group.random(G1)
         g2 = group.random(G2)
-        alpha = group.random()
-        beta = group.random()
+        alpha = group.random(ZR)
+        beta = group.random(ZR)
         h = group.random(G1)
         e_gg_alpha = pair(g1,g1) ** alpha
         pk = {'g':g1, 'g_beta':g1**beta , 'g_beta_2':(g1**beta)**beta, 'h_beta':h**beta, 'e_gg_alpha':e_gg_alpha}
@@ -57,11 +57,12 @@ class RBAC_scheme():
     def AddRole(self,pk,id_r):
         if id_r not in RURL:
             RURL[id_r]=[]
-            RURL[id_r].append("r0")
+            #id_new = group.random(ZR)
+            RURL[id_r].append("u0")
         id_u0 = RURL[id_r][0]
         v,K_r = group.random(ZR), group.random(ZR)
         C1 = pk['g'] **(1/K_r)
-        C2 = group.hash(unicode(id_r),G1) ** (1/K_r)
+        C2 = group.hash(id_r) ** (1/K_r)
         C = K_r * (pk['e_gg_alpha']** v)
         C0 = pk['g'] ** v
         C0_1 = pk['g_beta'] ** v
@@ -76,6 +77,7 @@ class RBAC_scheme():
         fs.upDateR(id_f,CT_sf)
         if isNew:
             FRL[id_f] = []
+        print (k_f)
         return k_f
     # checked
     def AddUser(self,pk,mk,id_u):
@@ -158,6 +160,7 @@ class RBAC_scheme():
             CT_f['CT_r_f'][id_r] = CT_f_1
         self.add2List(id_r,id_f,RFL)
         self.add2List(id_f,id_r,FRL)
+        fs.upDateR(id_f,CT_f)
         return CT_f
     # checked
     def RevokePermission(self,id_r,id_f,pk):
@@ -177,6 +180,7 @@ class RBAC_scheme():
         return CT_f_1
 
     def CheckAccess(self,id_u,id_f,SK_u,SK_r_u):
+        debug = True
         a = URL[id_u]
         b = FRL[id_f]
         CT_f = fs.getCT_f(id_f)
@@ -197,12 +201,16 @@ class RBAC_scheme():
             E2 *=CT_r[i][index+'_2'] ** (1/(group.hash(id_u) - group.hash(u_i)))
         D = pair(CT_r_0['C0'],SK_u['D0']) / (pair(SK_u['D1'],E1) * pair(SK_u['D2'],E2))
         K_r = CT_r_0['C'] / D
-        A = pair(SK_r_u['D_r'] ** K_r,CT_f['C3']) / pair(SK_r_u['D_r_2'] ** K_r, CT_f['CT_r_f'][id_r])
+        if debug:
+            d1 = SK_r_u['D_r']**K_r
+            d4 = ( CT_f['CT_r_f'][id_r])
+            d5 = SK_r_u['D_r_2']**K_r
+        A = pair(SK_r_u['D_r'] ** K_r,CT_f['C3']) / pair(SK_r_u['D_r_2'] ** K_r,CT_f['CT_r_f'][id_r])
         K_f = CT_f['C4'] / (pair(CT_f['C5'],SK_r_u['D3']) / A)
 
         #TODO if there is a Revoke happening,how does it works
 
-        return AESDecrypt(K_f,getResource(id_f))
+        return AESDecrypt(K_f,fs.getResource(id_f))
 
 
 
